@@ -1,0 +1,25 @@
+\section{Compressing the Tree Leaves}\label{sec.compression}
+
+\noindent
+\emph{Aggregate signatures.}
+For the latter part of our construction, we make use of \emph{aggregate signatures}.
+
+\begin{enumerate}
+  \item ATMS and Mithril
+\end{enumerate}
+
+\begin{table*}[t]
+  \centering
+  \begin{tabular}{|l|r|r|r|r|r|r|r|r|}
+  \hline
+  \multicolumn{1}{|r|}{}      & \textbf{Full PoW}~\cite{backbone}& \textbf{KLS}~\cite{popow}& \textbf{FlyClient}~\cite{flyclient}   & \textbf{Logspace Mining}~\cite{logspace} & \textbf{Full PoS}~\cite{ouroboros} & \textbf{Mithril}~\cite{mithril} & \textbf{Coda}~\cite{coda}  & \textit{This work} \\ \hline
+  \textbf{Communication}      & $nL$                             & $\text{poly}\log(nL)$    & $\text{poly}\log(nL)$                 & $\text{poly}\log(nL)$                    & $nL$                               & $n + L$                         & $1$                        & $\log(n) + L$      \\ \hline
+  \textbf{Interactivity}      & $1$                              & $\text{poly}\log(nL)$    & $1$                                   & $1$                                      & $1$                                & $1$                             & $1$                        & $\log(n)$          \\ \hline
+  \textbf{Work/Stake}         & work                             & work                     & work                                  & work                                     & stake                              & stake                           & both                       & stake              \\ \hline
+  \textbf{Model}              & random oracle                    & random oracle            & random oracle                         & random oracle                            & standard                           & standard                        & trusted setup              & standard           \\ \hline
+  \end{tabular}
+  \vspace{0.5em}
+  \caption{A comparison of our results and previous work, in \emph{asymptotic} communication complexity.\\
+           $n$: the number of epochs; $L$: the number of blocks per epoch. Non-interactivity is preferable.}
+  \label{tab.comparison}
+\end{table*}

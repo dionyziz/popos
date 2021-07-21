@@ -1,0 +1,35 @@
+\begin{algorithm}[H]
+    \caption{\label{alg.prover} The Proof of Proof-of-Stake prover.}
+
+    \begin{algorithmic}[1]
+        \Let{d}{\textsf{get-handover}(\chain)}
+        \Let{T}{\textsf{build-tree}(d, \epsilon)}
+
+        \Function{\sf open-internal}{$B$}
+            \CommentLine{These conditions will both be true or both be false}
+            \If{$(B \concat 0) \in T \land (B \concat 1) \in T$}
+                \State\Return{$(T[B \concat 0], T[B \concat 1])$}
+            \EndIf
+        \EndFunction
+
+        \Function{\sf open-leaf}{$B$}
+            \State\Return{$d[B\restriction_2]$}
+        \EndFunction
+
+        \Function{\sf open-path}{$B$}
+            \State\Return{$(d[B\restriction_2], \textsf{MT-prove}(B))$}
+        \EndFunction
+
+        \Function{\sf MT-prove}{$B$}
+            \If{$B = \epsilon$}
+                \State\Return{$\epsilon$}
+            \EndIf
+            \State\Return{$\textsf{MT-prove}(B[{:}{-1}]) \concat T[B[{:}{-1}] \concat (1 - B[-1])]$}
+        \EndFunction
+
+        \Function{\sf get-challenge}{}
+            \State\Return{$\true$}
+        \EndFunction
+    \vskip2pt
+    \end{algorithmic}
+\end{algorithm}

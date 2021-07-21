@@ -1,0 +1,50 @@
+\newif\ifanonymous
+
+\documentclass[conference]{IEEEtran}
+
+\usepackage{preamble}
+
+\pagestyle{plain}
+
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\begin{document}
+
+\title{Proofs of Proof-of-Stake\\with Sublinear Complexity}
+
+\ifanonymous\else
+\author{\IEEEauthorblockN{Dionysis Zindros}\thanks{Reasearch partly supported by funding from \emph{Harmony}.}
+\IEEEauthorblockA{University of Athens\\
+dionyziz@di.uoa.gr}}
+\fi
+
+\IEEEoverridecommandlockouts
+\makeatletter\def\@IEEEpubidpullup{6.5\baselineskip}\makeatother
+\IEEEpubid{\parbox{\columnwidth}{
+    Network and Distributed Systems Security (NDSS) Symposium 2022\\
+    27 February-3 March 2022\\
+    ISBN 1-891562-66-5\\
+    https://dx.doi.org/10.14722/ndss.2022.24xxx\\
+    www.ndss-symposium.org
+}
+\hspace{\columnsep}\makebox[\columnwidth]{}}
+
+\maketitle
+
+\import{./}{abstract}
+\import{./}{introduction}
+\import{./}{preliminaries}
+\import{./}{handover}
+\import{./}{bisection}
+\import{./}{compressing}
+\import{./}{sidechains}
+\import{./}{other}
+\import{./}{discussion}
+\import{./}{conclusion}
+\ifanonymous\else
+\import{./}{acknowledgements}
+\fi
+
+\import{./}{bibliography}
+
+\end{document}

@@ -1,0 +1,48 @@
+\begin{algorithm}[H]
+    \caption{\label{alg.verifier} The Proof of Proof-of-Stake verifier.}
+
+    \begin{algorithmic}[1]
+        \Function{\sf verify}{${\mathcal{PK}_0, P_0, P_1}$}
+            \Let{\pi_0, n_0}{P_0\textsf{.get-root()}}
+            \Let{\pi_1, n_1}{P_1\textsf{.get-root()}}
+
+            \If{$n_0 \geq n_1$}
+                \If{$\textsf{challenge}((P_0, \pi_0, n_0), P_1)$}
+                    \State\Return{$1$}
+                \EndIf
+            \EndIf
+            \If{$n_1 \geq n_0$}
+                \If{$\textsf{challenge}((P_1, \pi_1, n_1), P_0)$}
+                    \State\Return{$0$}
+                \EndIf
+            \EndIf
+            \If{$n_0 > n_1$}
+                \State\Return{$0$}
+            \EndIf
+            \State\Return{$1$}
+        \EndFunction
+
+        \Function{\sf challenge}{$(P_0, \pi_0, n_0), P_1$}
+            \Let{B}{\epsilon}
+            \Let{c}{\pi_0}
+            \While{$|B| < \lceil\log(n_0)\rceil$}
+                \Let{(c_0, c_1)}{P_0.\textsf{open-internal}(B)}
+                \If{$H(c_0 \concat c_1) \neq c$}
+                    \State\Return{$\true$}
+                \EndIf
+                \CommentLine{Retrieve next direction $b \in \{0, 1\}$}
+                \Let{b}{P_1.\textsf{get-challenge}(B, c_0, c_1)}
+                \CommentLine{Find index of challenged node}
+                \Let{B}{B \concat b}
+            \EndWhile
+            \Let{(pk_B, \sigma_B)}{P_0.\textsf{open-leaf}(B)}
+            \If{$B\restriction_2 = 0$}
+                \If{$pk_B \neq \mathcal{PK}_0$}
+                    \CommentLine{Genesis stake invalid}
+                    \State\Return{$\true$}
+                \EndIf
+            \EndIf
+        \EndFunction
+    \vskip2pt
+    \end{algorithmic}
+\end{algorithm}

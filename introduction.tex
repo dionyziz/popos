@@ -1,0 +1,71 @@
+\section{Introduction}
+
+Blockchains are envisioned to be the infrastructure that will handle the currency~\cite{bitcoin} and contract~\cite{buterin,wood}
+law of the future. Towards this goal, they must be scalable, long-lived systems that will
+survive for decades to come. However, their current design falls short of this goal. One
+aspect of its lack of efficiency stems from the fact that the chain grows at a predetermined
+rate in expectation~\cite{sok}. The number of blocks therefore increases linearly as time goes by.
+When a new node boots up for the first time and it needs to bootstrap only from the genesis
+block, it needs to download the whole chain that was ever created throughout history---or
+at the very least its block headers. Alternatively, it can rely on a trusted third party,
+but this contradicts the most important design principle of decentralized systems.
+
+This \emph{bootstrapping problem} has been successfully resolved in the proof-of-work
+setting. The communication needed for proof-of-work bootstrapping is drastically reduced
+by transmitting only a
+\emph{sample} of blocks. This sample is sufficient to convince
+a verifier which chain is the longest. Such systems rely on the
+computational difficultly of creating long chains. However, proof-of-work systems are
+quickly being abandoned in favour of new proof-of-stake systems. In the proof-of-stake
+setting, no such compression is currently possible. The central problem is that, in the
+stake setting, an adversary can create chains of arbitrary length without incurring much
+of a computational cost. Besides, the central assumption in stake systems is that the
+majority of \emph{stake} at any point in time is honestly controlled, but no limits are
+imposed on the computational power of the adversary (beyond the standard polynomiality).
+The---until now---unsolved problem of superlight proof-of-stake clients is a thorn in the
+side of proof-of-stake adoption.
+
+In this work, we put forth the first succinct Proof of Proof-of-Stake (PoPoS) protocol.
+The protocol involves a verifier and multiple provers, at least one of which is assumed
+to be honest (this is a standard
+assumption~\cite{backbone,backbone-new,varbackbone,pass-asynchronous}). The protocol is interactive:
+The verifier interacts with the provers in multiple rounds. The verifier initially requests from
+each prover a proof about the current state of the chain. After these proofs are received,
+the verifier interrogates each prover in a bisection game until any adversarial claims
+are ruled out. The number of interactions of the bootstrapping protocol is \emph{logarithmic}
+in the execution time of the whole system, and the communication complexity is also \emph{logarithmic}
+in total (as the communication in each round is constant). This constitutes an exponential
+improvement over previous work.
+
+Our construction has two main applications: \emph{Superlight} proof-of-stake clients that can
+bootstrap very efficiently, and \emph{sidechains} that allow the exchange of information between
+a source proof-of-stake blockchain and any smart-contract-enabled destination blockchain.
+
+\noindent
+\emph{Contributions.} In summary, our contributions are as follows:
+
+\begin{enumerate}
+  \item We give the first formal definition for succinct Proof of Proof-of-Stake (PoPoS) protocols.
+  \item We put forth a solution to the long-standing problem of efficient Proof-of-Stake bootstrapping.
+        Our solution is exponentially better than previous work.
+  \item We prove our construction is secure in the standard model on top of Ouroboros proof-of-stake.
+  \item In addition to efficient clients, we describe how our constuction can stand at the heart of
+        sidechain constructions with a proof-of-stake source chain.
+\end{enumerate}
+
+\noindent
+\emph{Related work.} The problem of proof-of-work bootstrapping has been explored in the interactive~\cite{popow}
+and non-interactive~\cite{nipopows} setting using various constructions from superblocks~\cite{compactsuperblocks}
+to Fiat--Shamir~\cite{fiatshamir} sampling~\cite{flyclient} and proven secure in the Bitcoin Backbone
+model~\cite{backbone,backbone-new,varbackbone}. Such constructions can be adopted without
+forking~\cite{velvet,velvet-nipopows} and have been deployed in practice~\cite{gas-efficient}. They have
+also been used to deploy one-way~\cite{burn} and two-way sidechains~\cite{sidechains,pow-sidechains,crosschain-sok}.
+
+The first provably secure proof-of-stake protocol was introduced in
+Ouroboros~\cite{ouroboros} and later extended~\cite{praos,genesis}. Several attempts to improve the efficiency
+of clients and sidechains have been proposed~\cite{pos-sidechains,mithril}, but they all achieve only concrete gains in efficiency
+and no asymptotic improvement. One proposal that achieves improved asymptotic efficiency~\cite{coda} is in the
+trusted setup model. Bisection games like ours have been used in the context of verifiable computation~\cite{refereed-computation}
+and in blockchain settings for the efficient execution of smart contracts~\cite{arbitrum}
+and for wallet metadata~\cite{wallets}.
+

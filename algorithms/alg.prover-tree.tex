@@ -1,0 +1,45 @@
+\begin{algorithm}[H]
+    \caption{\label{alg.prover-tree} The Proof of Proof-of-Stake tree construction.}
+
+    \begin{algorithmic}[1]
+        \Function{\sf get-root}{$\chain$}
+            \State\Return{$T[\epsilon]$}
+        \EndFunction
+
+        \CommentLine{Collect the leaves of the Merkle tree}
+        \Function{\sf get-handover}{$\chain$}
+            \Let{d}{[\,]}
+            \Let{pk}{[\,]}
+            \Let{\sigma}{[\,]}
+            \CommentLine{Iterate over all epochs; $sl_\text{now}$ denotes the current slot}
+            \For{$j \gets 1 \text{ to } \lfloor\frac{sl_\text{now}}{\mathcal{R}}\rfloor$}
+                \CommentLine{Get the last $2k$ blocks of the $j^\text{th}$ epoch}
+                \Let{S}{[(j + 1)\mathcal{R} - 2k, (j + 1)\mathcal{R})}
+                \CommentLine{Get the blocks corresponding to slots in $S$}
+                \Let{\chain^*}{\chain^S}
+                \CommentLine{Retrieve their leaders}
+                \Let{pk[j]}{\{\textsf{leader}(sl): sl \in S\}}
+                \Let{\sigma[j]}{\{\text{handover signatures in } \chain^*\}}
+                \Let{d[j]}{(pk[j], \sigma[j])}
+            \EndFor
+            \CommentLine{Current epoch}
+            \Let{j}{\lfloor \frac{sl_\text{now}}{\mathcal{R}} \rfloor + 1]}
+            \Let{S}{[(j + 1)\mathcal{R} - 2k, (j + 1)\mathcal{R})}
+            \Let{pk[j]}{\{\textsf{leader}(sl): sl \in S\}}
+            \Let{d[j]}{pk[j]}
+            \State\Return{d}
+        \EndFunction
+
+        \CommentLine{Evaluate the internal nodes of the Merkle tree}
+        \Function{\sf build-tree}{$d, p$}
+            \If{$|d| = 1$}
+                \State\Return{$\{(p \concat \epsilon) \Rightarrow H(d[0])\}$}
+            \EndIf
+            \Let{\textsf{mid}}{2^{\lfloor \log|d| \rfloor}}
+            \Let{T_0}{\textsf{build-tree}(d[{:}\textsf{mid}], p \concat 0)}
+            \Let{T_1}{\textsf{build-tree}(d[\textsf{mid}{:}], p \concat 1)}
+            \State\Return{$\{\epsilon \Rightarrow H(T_0 \concat T_1)\} \cup T_0 \cup T_1$}
+        \EndFunction
+    \vskip2pt
+    \end{algorithmic}
+\end{algorithm}

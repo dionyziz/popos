@@ -1,0 +1,27 @@
+\begin{abstract}
+  Blockchains grow at a constant rate.
+  When a client who holds only the genesis block first boots up, it
+  needs to download data growing linearly in time---taking significant time to initialize---or
+  rely on a trusted third party for its security.
+  In the proof-of-work setting, numerous solutions of chain compression
+  lift this burden from the clients and require only polylogarithmic data to be downloaded.
+  However, the community has been advocating for the use of proof-of-stake,
+  and most new systems abandon proof-of-work.
+  Despite several attempts, compressing the proof-of-stake consensus state has achieved only a modicum
+  of concrete improvement, but the asymptotic complexity remains linear.
+  In this paper, we put forth a new construction that, for the first time, achieves sublinear
+  communication complexity when bootstrapping a new proof-of-stake client. Our construction
+  is in the standard model. Our scheme only makes use of hash functions and signature schemes
+  and does not require a trusted setup. The proofs exchanged between the prover and the verifier
+  on the network take the form of a Merkle tree of proof-of-stake epochs.
+  Our key insight is to leverage
+  the standard assumption that the verifier connects to at least one honest prover.
+  The verifier enrolls the provers in a bisection game with a logarithmic
+  number of interactions, in which the honest prover is destined to win once the adversarial
+  Merkle tree is challenged at sufficient depth. As communication complexity is logarithmic
+  in the execution time, our construction performs exponentially better than previous work.
+  We prove our system is secure in the Ouroboros model,
+  but our construction works in all modern systems such as Snow White and Algorand.
+  In addition to superlight clients, our construction can be adopted to build efficient sidechains
+  with proof-of-stake sources.
+\end{abstract}
