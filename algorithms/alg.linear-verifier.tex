@@ -1,0 +1,39 @@
+\begin{algorithm}[H]
+    \caption{\label{alg.linear-verifier} The linear Proof of Proof-of-Stake verifier.}
+
+    \begin{algorithmic}[1]
+        \Function{\sf verify-leaves}{$d, w$}
+            \Let{(\overline{pk}_0^*, \_)}{d[0]}
+            \If{$\overline{pk}_0^* \neq \overline{pk}_0$}
+            \Comment{Check genesis leaf}
+                \State\Return$\false$
+            \EndIf
+            \For{$j \gets 1$ to $|d|$}
+                \Let{(\overline{pk}_j, \_)}{d[j]}
+                \Let{(\_, \overline{\sigma}_{j-1})}{d[j - 1]}
+                \If{$\lnot \textsf{verify-transition}(\overline{pk}_j, \overline{\sigma}_{j-1}, w[j])$}
+                    \State\Return$\false$
+                \EndIf
+            \EndFor
+        \EndFunction
+        \Function{\sf verify-transition}{$\overline{pk}_j, \overline{\sigma}_{j-1}, w$}
+            \If{$|\overline{pk}_j| \neq 2k$ or $|\overline{sigma}_{j-1}| \neq k - 1$}
+                \State\Return$\false$
+            \EndIf
+            \Let{c}{0}
+            \For{$i \gets 0$ to $|\overline{pk}_j|$}
+                \If{$\overline{\sigma}_{j-1}[i] \neq \bot$}
+                    \If{$\textsf{Ver}(\overline{pk}_j[i], \overline{\sigma}_{j-1}[i], \overline{pk}_j)$}
+                        \State\Return$\false$
+                    \EndIf
+                    \Let{c}{c + 1}
+                \EndIf
+            \EndFor
+            \If{$c < k + 1$}
+                \State\Return$\false$
+            \EndIf
+            \State\Return$\true$
+        \EndFunction
+    \vskip2pt
+    \end{algorithmic}
+\end{algorithm}

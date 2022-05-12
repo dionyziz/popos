@@ -1,1 +1,14 @@
 \section{Conclusion}
+
+We have presented the first Proof of Proof-of-Stake protocol that allows synchronization
+with logarithmic communication complexity. Our construction is simple and in the standard
+model: we only rely on deterministic and unique signatures as well as hash functions. Our
+construction is interactive and relies on a bisection game played between a verifier and
+a set of provers, at least one of which is honest. We showed that our protocol is secure
+and succinct, and discussed how it can be used to bootstrap wallets as well as a building
+block for cross-chain interactions with proof-of-stake chain sources. As all previous
+constructions were linear in the execution time, our construction is an exponential
+improvement over previous work. We hope that, as proof-of-stake blockchains become
+more popular, our protocol will be adopted at the heart of proof-of-stake mobile wallets
+to achieve better bootstrapping performance without a sacrifice in security and without
+reliance on trusted third parties.

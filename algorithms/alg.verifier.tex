@@ -36,6 +36,9 @@
                 \Let{B}{B \concat b}
             \EndWhile
             \Let{(pk_B, \sigma_B)}{P_0.\textsf{open-leaf}(B)}
+            \If{$|\sigma_B| < k + 1$}
+                \State\Return{$\true$}
+            \EndIf
             \If{$B\restriction_2 = 0$}
                 \If{$pk_B \neq \mathcal{PK}_0$}
                     \CommentLine{Genesis stake invalid}

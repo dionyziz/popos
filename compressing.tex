@@ -12,14 +12,17 @@ For the latter part of our construction, we make use of \emph{aggregate signatur
   \centering
   \begin{tabular}{|l|r|r|r|r|r|r|r|r|}
   \hline
-  \multicolumn{1}{|r|}{}      & \textbf{Full PoW}~\cite{backbone}& \textbf{KLS}~\cite{popow}& \textbf{FlyClient}~\cite{flyclient}   & \textbf{Logspace Mining}~\cite{logspace} & \textbf{Full PoS}~\cite{ouroboros} & \textbf{Mithril}~\cite{mithril} & \textbf{Coda}~\cite{coda}  & \textit{This work} \\ \hline
-  \textbf{Communication}      & $nL$                             & $\text{poly}\log(nL)$    & $\text{poly}\log(nL)$                 & $\text{poly}\log(nL)$                    & $nL$                               & $n + L$                         & $1$                        & $\log(n) + L$      \\ \hline
-  \textbf{Interactivity}      & $1$                              & $\text{poly}\log(nL)$    & $1$                                   & $1$                                      & $1$                                & $1$                             & $1$                        & $\log(n)$          \\ \hline
-  \textbf{Work/Stake}         & work                             & work                     & work                                  & work                                     & stake                              & stake                           & both                       & stake              \\ \hline
-  \textbf{Model}              & random oracle                    & random oracle            & random oracle                         & random oracle                            & standard                           & standard                        & trusted setup              & standard           \\ \hline
+  \multicolumn{1}{|r|}{}                         & \textbf{SPV PoW}~\cite{backbone} & \textbf{KLS}~\cite{popow}        & \textbf{FlyClient}~\cite{flyclient}   & \textbf{Superblocks}~\cite{nipopows,logspace} & \textbf{Full PoS}~\cite{ouroboros} & \textbf{Mithril}~\cite{mithril} & \textbf{Coda}~\cite{coda}  & \textit{This work}         \\ \hline
+  \textbf{Communication}                         & $nL$                             & $\log(nL)$                       & $\text{poly}\log(nL)$                 & $\log(nL)$                                    & $nL$                               & $n + L$                         & $1$                        & $\log n + L$               \\ \hline
+  \textbf{Interactivity}                         & $1$                              & $\log(nL)$                       & $1$                                   & $1$                                           & $1$                                & $1$                             & $1$                        & $\log n$                   \\ \hline
+  \textbf{Work/Stake}                            & work                             & work                             & work                                  & work                                          & stake                              & stake                           & both                       & stake                      \\ \hline
+  \textbf{Model}                                 & random oracle                    & random oracle                    & random oracle                         & random oracle                                 & standard                           & random oracle                   & trusted setup              & standard                   \\ \hline
+  \textbf{Primitives}                            & hash                             & hash                             & hash                                  & hash                                          & hash, sig                          & hash, sig, ZK                   & hash, sig, ZK              & hash, sig                  \\ \hline
   \end{tabular}
   \vspace{0.5em}
-  \caption{A comparison of our results and previous work, in \emph{asymptotic} communication complexity.\\
-           $n$: the number of epochs; $L$: the number of blocks per epoch. Non-interactivity is preferable.}
+  \caption{A comparison with previous work in terms of \emph{asymptotic} $\widetilde{\Theta}$ communication complexity, interactivity, and model.\\
+           Interactivity is concrete number of rounds, ignoring constants. Low communication and interactivity are preferable.\\
+           $n$: number of epochs; $L$: number of blocks per epoch.
+           Number of provers $|\mathcal{P}|$ and Common Prefix parameter $k$ are constants.}
   \label{tab.comparison}
 \end{table*}

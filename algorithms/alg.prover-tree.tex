@@ -2,7 +2,7 @@
     \caption{\label{alg.prover-tree} The Proof of Proof-of-Stake tree construction.}
 
     \begin{algorithmic}[1]
-        \Function{\sf get-root}{$\chain$}
+        \Function{\sf get-root}{$T$}
             \State\Return{$T[\epsilon]$}
         \EndFunction
 
@@ -38,7 +38,7 @@
             \Let{\textsf{mid}}{2^{\lfloor \log|d| \rfloor}}
             \Let{T_0}{\textsf{build-tree}(d[{:}\textsf{mid}], p \concat 0)}
             \Let{T_1}{\textsf{build-tree}(d[\textsf{mid}{:}], p \concat 1)}
-            \State\Return{$\{\epsilon \Rightarrow H(T_0 \concat T_1)\} \cup T_0 \cup T_1$}
+            \State\Return{$\{(p \concat \epsilon) \Rightarrow H(T_0 \concat T_1)\} \cup T_0 \cup T_1$}
         \EndFunction
     \vskip2pt
     \end{algorithmic}

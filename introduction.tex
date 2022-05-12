@@ -19,9 +19,9 @@ computational difficultly of creating long chains. However, proof-of-work system
 quickly being abandoned in favour of new proof-of-stake systems. In the proof-of-stake
 setting, no such compression is currently possible. The central problem is that, in the
 stake setting, an adversary can create chains of arbitrary length without incurring much
-of a computational cost. Besides, the central assumption in stake systems is that the
+computational cost. Besides, the central assumption in stake systems is that the
 majority of \emph{stake} at any point in time is honestly controlled, but no limits are
-imposed on the computational power of the adversary (beyond the standard polynomiality).
+imposed on the computational power of the adversary (beyond standard polynomiality).
 The---until now---unsolved problem of superlight proof-of-stake clients is a thorn in the
 side of proof-of-stake adoption.
 
@@ -55,7 +55,7 @@ a source proof-of-stake blockchain and any smart-contract-enabled destination bl
 
 \noindent
 \emph{Related work.} The problem of proof-of-work bootstrapping has been explored in the interactive~\cite{popow}
-and non-interactive~\cite{nipopows} setting using various constructions from superblocks~\cite{compactsuperblocks}
+and non-interactive~\cite{nipopows} setting using various constructions from superblocks~\cite{logspace,compactsuperblocks}
 to Fiat--Shamir~\cite{fiatshamir} sampling~\cite{flyclient} and proven secure in the Bitcoin Backbone
 model~\cite{backbone,backbone-new,varbackbone}. Such constructions can be adopted without
 forking~\cite{velvet,velvet-nipopows} and have been deployed in practice~\cite{gas-efficient}. They have
@@ -64,8 +64,9 @@ also been used to deploy one-way~\cite{burn} and two-way sidechains~\cite{sidech
 The first provably secure proof-of-stake protocol was introduced in
 Ouroboros~\cite{ouroboros} and later extended~\cite{praos,genesis}. Several attempts to improve the efficiency
 of clients and sidechains have been proposed~\cite{pos-sidechains,mithril}, but they all achieve only concrete gains in efficiency
-and no asymptotic improvement. One proposal that achieves improved asymptotic efficiency~\cite{coda} is in the
-trusted setup model. Bisection games like ours have been used in the context of verifiable computation~\cite{refereed-computation}
+and no asymptotic improvement. In the trusted setup model, zkSNARKS have been used to achieve constant communication complexity
+in Coda~\cite{coda} and Plumo~\cite{plumo}.
+Bisection games like ours have been used in the context of verifiable computation~\cite{refereed-computation}
 and in blockchain settings for the efficient execution of smart contracts~\cite{arbitrum}
 and for wallet metadata~\cite{wallets}.
 

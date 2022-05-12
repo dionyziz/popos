@@ -1,8 +1,124 @@
 \section{Other Proof-of-Stake Systems}\label{sec.other}
 
+We have presented our construction in the Ouroboros proof-of-stake model. Our construction
+is quite general and can be adopted to any proof-of-stake system. Many proof-of-stake systems are split
+into (potentially smaller) epochs in which some sampling from the underlying stake distribution
+is performed according to some random number. The random number generation can be performed in multiple
+ways. For example, all of Ouroboros, Ouroboros Praos, and Ouroboros Genesis use a verifiable secret
+sharing mechanism, while
+Algorand uses a multiparty computation. The stake distribution from which the sampling is performed
+could also have various nuances such as delegation, might require locking one's funds, may exclude
+people with very small stake, or may give different weights to different stake ownership. In all
+of these cases, a frozen stake distribution from which the final sampling is performed is determined.
+
+Our scheme can be generalized to any proof-of-stake scheme in which the leader can be verified
+from a frozen stake distribution and some randomness, no matter how it is generated, as
+long as the block associated with a particular slot can be uniquely determined after it stabilizes
+(a property that follows in any blockchain system as long as it observes the common prefix property).
+In the scheme we described throughout the paper, the sequence of signatures $\overline{\sigma}_{j+1}$ that are generated
+in an epoch $j$ and vouch for the leaders of the next epoch sign the public key sequence $\overline{pk}_{j+1}$
+of the next epoch. To generalize our scheme to any proof-of-stake system with randomness and a stake distribution,
+the signatures $\overline{\sigma}_{j+1}$ need not sign the public key sequence any more; instead, they
+can sign:
+
 \begin{enumerate}
-\item Harmony
-\item Snow white
-\item Algorand
-\item Semi-synchrony of Ouroboros Praos
+  \item the epoch randomness $\eta_{j+1}$ of the next epoch, and
+  \item the frozen stake distribution $\textsf{SD}_j$ of the current epoch
+        that will be used for sampling during the next epoch.
 \end{enumerate}
+
+Of course, in
+such a scheme, a succinctness problem arises: The stake distribution $\textsf{SD}_j$ might be large.
+However, this problem can be overcome by organizing the stake distribution $\textsf{SD}_j$ into a
+Merkle tree. This Merkle tree contains one leaf for every satoshi (the smallest cryptocurrency
+denomination). The leaf's value is the public key who owns this satoshi. When the sampling from
+$\textsf{SD}_j$ according to the randomness $\eta_{j+1}$ occurs, the prover can provide a proof
+that the correct leader was the one that happened to be elected by opening the particular Merkle
+tree path at a particular index. That way, the verifier can deduce the $2k$ last slot leaders of each epoch. Because
+the number of satoshis can be large, this Merkle tree can have a large (potentially an exponential)
+number of leaves.
+However, its root and proofs can be efficiently computed using sparse Merkle tree techniques~\cite{sparse-mt}
+(or Merkle tries~\cite{wood})
+because the tree contains a polynomial number of continuous ranges in which many consecutive
+leaves share the same value.
+Even better, a Merkle--Segment trees~\cite{flyclient}) can be used. These trees are similar to
+Merkle trees, except that each node (internal or leaf) is also annotated with a numerical value,
+here the total stake under the subtree rooted at the particular node. Each internal node has
+the property that its annotated value is the sum of the annotated values of its children.
+
+The above technique is quite generic, but each system has its nuances that must be accounted for.
+
+\noindent
+\textbf{Ouroboros Praos and Genesis.}
+These two protocols have some similarities to Ouroboros, but also significant differences.
+As Ouroboros Praos and Genesis are designed to be resilient to fully
+adaptive adversaries, the actual slot leader of each slot is not known \emph{a priori}.
+However, a party can himself determine whether he is eligible to be the
+slot leader by evaluating a VRF on the epoch randomness and the current slot index
+using his private key.
+If the VRF output is below a certain threshold, determined by the candidate leader's
+stake, then the party is elegible to be a leader for this slot.
+The party's public key can then be used by others to verify a proof that the VRF computation
+was correct, and that he is indeed a rightful leader.
+
+Because we cannot determine the leaders of the $j+1^\text{st}$ epoch at the end of epoch
+$j$, we cannot hope to have the leaders of the $j^\text{th}$ epoch sign off the public
+keys of the leaders of epoch $j+1$. However, the above technique,
+in which signatures sign the randomness
+and a Merkle--Segment tree of the stake distribution, together with the VRF proof, suffices.
+In this construction, the signatures of epoch $j$ sign off the randomness for epoch $j+1$ and stake
+distribution Merkle tree for epoch $j$. At a later time, when it is revealed who is leader,
+the honest prover can provide the VRF proof to the verifier, and the verifier can check
+that the leader was indeed rightful. To obtain the VRF threshold, the prover can open the
+Merkle--Segment tree to the depth required to illustrate the total sum of the stake of the leader.
+Once the leader's stake is revealed, the threshold used in the VRF inequality is validated.
+
+Because each slot can have multiple leaders,
+if approached na\"ively, this can cause the handover trees
+to lose their deterministic property. Instead, the \emph{handover witness} technique must be
+used to illustrate that the provided leaders actually ended up being part of the chain, similarly to
+how we solved the problem in the case of Ouroboros in the main body of the paper.
+
+These protocols have several advantages, including security in the semi-synchronous
+setting as well as resilience to adaptive adversaries~\cite{praos,genesis}.
+
+\noindent
+\textbf{Snow White.}
+This protocol uses epochs and every epoch contains a randomness and a
+stake distribution from which leaders are sampled~\cite{snowwhite}.
+Therefore, our protocol can be readily
+adapted to it.
+
+\noindent
+\textbf{Harmony.}
+The Harmony chain also splits the execution into epochs of duration of roughly one
+day~\cite{harmony}.
+There is a stake distribution from which sampling is done, although this distribution
+is slightly altered for the sampling purposes as compared to money ownership purposes.
+As such, our protocol would need to use the stake distribution used for sampling.
+The protocol already provisions for \emph{epoch blocks}, a representative larger block
+in each epoch that contains a sample of leaders such that any sufficiently large subset
+of them will contain one honest party. The leaders recorded in epoch blocks can be used
+for the purposes of our protocol. For the handover transitions, the leaders recorded in
+the previous epoch block are expected to sign off the next epoch block. Harmony already
+leverages this mechanism to conduct cross-chain transfers in a protocol that has
+linear efficiency. Our protocol can be readily applied on top to achieve our described
+exponential improvements.
+
+\noindent
+\textbf{Algorand.}
+Contrary to Ouroboros, Algorand offers immediate finality~\cite{algorand}.
+Once a block is broadcast,
+any transactions contains within are confirmed and can no longer be reverted. In other
+words, its common prefix property holds with a parameter of $k = 1$. To achieve this,
+Algorand runs a full Byzantine Agreement protocol for the generation of every block
+before moving to the next block. One way to look at it is to think of Algorand as a
+coin in which the epoch duration is $R = 1$. Our construction can therefore create a
+handover tree in which the leaves are exactly the blocks in the Algorand chain. The
+Algorand private sortition mechanism can be used to elect a committee large enough
+to ensure honest supermajority (a property required for Algorand's security).
+This committee, whose members can be placed in increasing order by their public
+key to ensure determinism, can then be used in place of our sequence of public keys,
+to sign off the results of the next block. Even though our handover
+tree now becomes slightly larger, with its number of leaves equal to the
+chain length $|\chain|$, our protocol is still $\mathcal{O}(\log|\chain|)$.

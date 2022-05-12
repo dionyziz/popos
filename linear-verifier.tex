@@ -1,0 +1,31 @@
+\section{A Linear Verifier}\label{sec.verifier}
+
+Now that we have developed our handover trees, let us describe how
+a verifier bootstrapping from genesis and receiving \emph{all} the leaves of the tree
+could verify their veracity. This verifier will not be efficient, but
+we will use him as a stepping stone for developing a succinct verifier
+later.
+
+The verifier's job at this point will be to check that:
+
+\begin{enumerate}
+  \item The leaves are syntactically valid. Every $j^\text{th}$ leaf
+        consists of a
+        pair whose first element $\overline{pk}_j$
+        is a sequence of $2k$ public keys and whose second element
+        $\overline\sigma_j$ is a
+        sequence of $k+1$ signatures, except for the last leaf which consists
+        simply of a sequence $\overline{pk}_n$ of $2k$ public keys.
+  \item The first leaf corresponds to the known \emph{genesis} pair
+        $(\overline{pk}[0], \overline{\sigma}[0])$.
+  \item Each $j^\text{th}$ leaf's sequence $\overline{pk}_j$ of public
+        keys is signed by each of the $k+1$ signatures
+        $\overline\sigma_{j-1}$ in the previous leaf
+        and is verifiable using $k+1$ of the $2k$ public keys
+        of $\overline{pk}_{j-1}$, each in a distinct position
+        in the sequence.
+\end{enumerate}
+
+todo: talk about witnesses...
+
+\import{./}{algorithms/alg.linear-verifier.tex}

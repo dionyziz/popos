@@ -1,0 +1,54 @@
+\begin{algorithm}[H]
+    \caption{\label{alg.bootstrap-verifier}
+      The bootstrapping operation for the verifier $V$
+      from an admissible handover tree root $\pi$ with $n$ leaves:
+      Checking that a recent transaction $\tx$ has been confirmed.}
+
+    \begin{algorithmic}[1]
+        \Function{\sf V.bootstrap}{$P, \pi, n, \tx$}
+            \Let{(\overline{pk}_{n-1}, \_)}{\text{request leaf $n - 1$ in $\pi$ from $P$}}
+            \Let{z_1}{\text{request $n - 1^\text{th}$ inclusion proof in $\pi$ from $P$}}
+            \If{$\lnot\textsf{MT-verify}(\pi, \overline{pk}_{n-1}, n - 1, z_1)$}
+                \State\Return$\false$
+            \EndIf
+            \Let{\overline{pk}^*_{n-1}}{\text{obtain keys of first $2k$ slots from $\overline{pk}_{n-1}$}}
+            \Let{\chain^*}{\text{request header chain for $S[-6k{:}-4k]$ from $P$}}
+            \If{$\chain^*$ is not a chain
+                \\\hskip\algorithmicindent\phantom{if}
+                or $|\chain^*| < k + 1$
+                \\\hskip\algorithmicindent\phantom{if}
+                or $\chain^*$ was not created with keys in $\overline{pk}^*_{n-1}$
+            }
+                \State\Return$\false$
+            \EndIf
+            \Let{b^*}{\chain^*[0]}
+            \Let{sl}{\text{request slot after which $\tx$ was confirmed from $P$}}
+            \Let{S}{\{sl, \cdots, sl + 2k\}}
+            \Let{\overline{pk}'}{\text{request slot leaders of $S$ from $P$}}
+            \Let{z_2}{\text{request $S$ inclusion proof in $b^*\textsf{.leaders}$ from $P$}}
+            \If{$\lnot\textsf{MT-verify}(b^*\textsf{.leaders}, \overline{pk}', S, z_2)$}
+                \State\Return$\false$
+            \EndIf
+            \Let{\chain'}{\text{request header chain for slots $S$}}
+            \If{$\chain'$ is not a chain
+                \\\hskip\algorithmicindent\phantom{if}
+                or $|\chain'| < k + 1$
+                \\\hskip\algorithmicindent\phantom{if}
+                or $\chain'$ was not created with keys in $\overline{pk}'$
+            }
+                \State\Return$\false$
+            \EndIf
+            \Let{b}{\text{request block in which $\tx$ was confirmed from $P$}}
+            \If{$b \not\in \chain'$}
+                \State\Return$\false$
+            \EndIf
+            \Let{i}{\text{request index of $\tx$ in $b\textsf{.txs}$ from $P$}}
+            \Let{z_3, i}{\text{request $i^\text{th}$ inclusion proof in $b\textsf{.txs}$ from $P$}}
+            \If{$\lnot\textsf{MT-verify}(b\textsf{.txs}, \tx, i, z_3)$}
+                \State\Return$\false$
+            \EndIf
+            \State\Return$\true$
+        \EndFunction
+    \vskip2pt
+    \end{algorithmic}
+\end{algorithm}

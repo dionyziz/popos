@@ -1,0 +1,160 @@
+\section{Bootstrapping from Tree Roots}
+
+\import{./}{algorithms/alg.bootstrap-prover}
+\import{./}{algorithms/alg.bootstrap-verifier}
+
+The handover trees developed in the previous section are immensely helpful in the superlight
+client synchronization. Through the bisection game, we have already shown that the tree that
+the honest verifier will adopt corresponds to the most epochs adopted by any honest party, or
+one extra epoch that will soon by adopted by the honest parties. Now that the verifier has
+obtain this tree and confirmed its veracity, the task that remains is to discern facts about
+the underlying blockchain. We will show how the verifier can deduce whether a particular transaction
+$\tx$ is confirmed or not. Similar questions about the blockchain such as how much money one
+owns, or the state of a particular smart contract, can be resolved in a similar manner.
+Our protocol will allow proving transaction inclusion in the stable part of the blockchain
+(i.e., we can only speak about transactions that have been confirmed). More specifically,
+can prove the inclusion of any transaction that any honest full node sees
+as confirmed in their underlying chain. This includes transactions in the current epoch,
+as well as older transactions since genesis. On the other hand, a transaction that no
+honest party sees (or will soon see) as confirmed cannot be proven.
+
+To bootstrap their current state, the verifier can ask all provers to provide him with
+transactions of interest for his wallet. From the non-eclipsing assumption, all the confirmed
+transactions of interest will be given to the verifier. In addition, the adversary may provide
+transactions that are not of interest, or transactions of interest that have not been confirmed
+and may never be confirmed. The verifier can distinguish between these by running our bootstrapping
+protocol illustrated in Algorithm~\ref{alg.bootstrap-verifier} for each transaction. As long as the number
+of transactions of interest is small (constant), the asymptotic performance will not be harmed. 
+Practical performance can be improved by combining the querying of multiple transactions.
+
+The algorithm works as follows: Once the correct root $\pi$ has been ascertained, the verifier
+contacts each prover $P$ to verify whether the transaction $\tx$ is included in a chain established
+during the epochs described by the tree whose root is $\pi$. The adversarial prover will not be
+able to prove inclusion for an invalid transaction, but the honest prover will be.
+The verifier makes a series of requests to the prover and receives some responses.
+If the prover fails at any time to provide a valid
+response to the verifier, the verifier deduces that the prover does not know how to prove inclusion
+for the particular transaction, and continues with the rest of the provers.
+
+Initially, the verifier requests the \emph{penultimate} leaf, of index $n-1$, in the tree $\pi$.
+The leaf corresponds to the previous epoch from the current one.
+The prover provides the leaf that contains $\overline{pk}^*_{j-1}$, the leaders of the
+slots $S_{j-1}[-6k{:}-4k]$ of the previous epoch. In addition, the leaf contains a signature
+$\sigma_{j-1}$ that we will not make use of in this stage. The prover also provides an inclusion
+proof $z_1$ that shows that this is the correct leaf at index $n-1$ in $\pi$.
+The prover then presents a subchain $\chain^*$ of at least $k+1$ connected blocks produced
+during the slots $S_{j-1}[-6k{:}-4k]$. The verifier ensures that $\chain^*$ is a valid
+connected chain of length at least $k+1$ and that its blocks have been created by the rightful
+leaders as defined by $\overline{pk}^*_{j-1}$. The verifier then obtains $b^* = \chain^*[0]$, treating
+it as if it were an honest block, and retrieves the root $b^*\textsf{.leaders}$ of the tree of leaders.
+Lastly, the prover provides the $2k$ slots $S$ after the inclusion of $\tx$ in a block and the
+public keys $\overline{pk}'$ of the leaders of these slots, together with an inclusion proof of
+the leaves $\overline{pk}'$ at positions $S$ in the tree root $b^*\textsf{.leaders}$. Once the verifier
+verifies the inclusion proof, he requests the particular block $b$ in which $\tx$ was confirmed.
+He checks that $b$ is in $\chain^*$. Lastly, he requests an inclusion proof of $\tx$ in $b\textsf{.txs}$
+which is verified according to the workings of a usual SPV client.
+
+The following lemmas give the desired properties of the bootstrapping protocol.
+
+\begin{lemma}[Bootstrapping Succinctness]
+  Given a tree constructed correctly with the current number $n$ of epochs, or one extra epoch, the protocol
+  of Algorithms~\ref{alg.bootstrap-prover}-\ref{alg.bootstrap-verifier}
+  requires $\Theta(n)$ communication and requires $1$ round of interaction.
+\end{lemma}
+\begin{proof}
+  \noindent
+  \emph{Interactivity.}
+  Each of the requests does not depend on the response
+  processing on the verifier end. Therefore all interaction can be combined
+  into one round and the protocol proceeds by making only a single request (containing $\tx$)
+  from the verifier to the prover, and receiving a
+  single response from the prover to the verifier. 
+
+  \noindent
+  \emph{Succinctness.}
+  The data sent from the verifier to the prover is the transaction and the tree root of
+  constant size. The prover responds with a collection $\overline{pk}_{n-1}$ of $6k$ keys
+  (the respective signature is not processed at this stage), which is a constant. The
+  chain chunks $\chain^*$ and $\chain'$ provided are each at most $2k$ blocks, also a constant.
+  Lastly, the proofs $z_1$, $z_2$, and $z_3$ are $\Theta(\log n)$, $\Theta(\log n)$, and $\Theta(\log |b\textsf{.tx}|)$,
+  the last of which is also a constant (the number of transactions in a single block).
+  Overall, the communication complexity is $\Theta(\log n)$.
+\end{proof}
+
+\begin{lemma}[Bootstrapping Correctness]
+  An honest prover $P$
+  seeing a transaction $\tx$ as confirmed and
+  executing the protocol of Algorithm~\ref{alg.bootstrap-prover}
+  will convince the verifier holding an admissible handover tree root $\pi$
+  about the inclusion of $\tx$ in $\pi$.
+\end{lemma}
+\begin{proof}
+  Consider the adopted chain $\chain$ of the honest party $P$ and let $n$ be the number
+  of epochs $P$ has observed and $m$ be the number of epochs in $\pi$.
+  Since $\tx$ is confirmed, it must be included
+  in a block $b$ of $\chain$ generated during some slot $sl$.
+  Additionally, since $\tx$ is confirmed, the current slot must be at least $sl + 2k$.
+  Since $\pi$ is admissible, $m = n$ or $m = n + 1$.
+  In any case, $P$ has enough data to reconstruct the whole tree
+  and certainly an inclusion proof $z_1$ of
+  the penultimate leaf of this tree (if $m = n+1$,
+  the one extra leaf required to construct the siblings in the inclusion proof
+  will have been provided during the execution of Algorithm~\ref{alg.prover}).
+  The penultimate leaf contains $\overline{pk}^*_{m-1}$ in agreement
+  with the view of $P$ about the leaders in $S_{m-1}[-6k{:}-4k]$.
+  Let $\chain^*, b^*$ be as in the algorithm.
+  By the chain growth property, at least $k+1$ blocks of $\chain$
+  must have been generated during $S_{m-1}[-6k{:}-4k]$.
+  Therefore $|\chain^*| \geq k + 1$.
+  During those slots, the randomness $\eta_m$ of epoch $m$
+  and the stake distribution $\textsf{SD}_{m-1}$ used for the leader election
+  of epoch $m$ are known and correctly included in $\chain^*$
+  (otherwise they would not have been adopted by $P$).
+  The leaders $b^*\textsf{.leaders}$ are for the same reason also correct
+  and must contain all leaders up to and including epoch $m$, and
+  in particular the leaders of the slots $S = \{sl, \cdots, sl + 2k\}$.
+  Therefore, the prover has enough data to also construct the inclusion
+  proof $z_2$. Let $\chain'$ be as in the algorithm. From chain growth,
+  $|\chain'| \geq k + 1$. Lastly, $b$ will be in $\chain'$ by choice,
+  and $\tx$ will be in $b$, therefore $P$ can also construct a valid $z_3$,
+  as desired.
+
+  There is one detail needed for the above algorithm to fully work: In case the
+  admissible tree held by the verifier has $m$ epochs, but the honest prover
+  has only seen $n = m - 1$ epochs, the prover must somehow know (1) the data
+  in the last leaf $\overline{pk}_m$, as well as (2) the leaders of epoch $m$
+  in order to construct a proof for $b\textsf{.leaders}$. Both of these pieces
+  of data are available to the honest prover in case $n = m - 1$. To see this,
+  observe that an admissible tree with $m = n + 1$ can only be constructed given
+  a witness for the transition to epoch $n + 1$. This witness consists of at
+  least $k+1$ blocks produced during the slots $S_n[-4k{:}-2k]$ and at least
+  $k+1$ blocks produced during the slots $S_n[-2k{:}]$. By the honest
+  subchain property, at least one block in the first range must be honestly
+  generated (call it $b_1$), and at least one in the second range must be
+  honestly generated too (call it $b_2$). Since $b_2$ is honestly generated
+  at a slot after $b_1$, this means that the honestly generated block $b_1$
+  was broadcast during its generated slot and has been received by $P$.
+  This block $b_1$ contains both the leaders
+  $b_1\textsf{.leaders}$ and of course the public keys $\overline{pk}_m$
+  since they are a subset of the leaders. Therefore, even though $P$ may
+  not yet have transitioned to epoch $m$, he certainly knows all the data
+  required to provide the necessary proofs to $V$.
+\end{proof}
+
+\begin{lemma}[Bootstrapping Security]
+  If a PPT adversary can convince the honest verifier
+  of Algorithm~\ref{alg.bootstrap-verifier}
+  holding an admissible tree $\pi$
+  of the inclusion of
+  a transaction $\tx$, then this transaction will be confirmed by all honest parties
+  within $u$ slots, except with negligible probability in the security parameter.
+\end{lemma}
+\begin{proof}[Sketch]
+\end{proof}
+
+By the \emph{chain growth} property, at least such
+$k+1$ blocks must exist, and by the \emph{honest subsequence} property, at least one block $b$ in $\chain^*$
+must be honestly generated. Since $b$ extends (or is equal to) $\chain^*[0]$, therefore $\chain^*[0]$
+contains a correct commitment to the slot leaders of the next epoch, even if it was adversarially generated.
+This commitment can be used to obtain the most recent $2k$ slot leaders from the prover, accompanied
+by the respective Merkle tree proofs of inclusion.

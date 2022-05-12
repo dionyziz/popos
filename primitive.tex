@@ -1,0 +1,72 @@
+\section{The PoPoS Primitive}
+
+We begin by describing the goal of our protocol.
+Inspired by the analogous proof-of-work constructions~\cite{nipopows},
+our model consists of an honest party $V$,
+the verifier, holding only the Genesis block $\mathcal{G}$, who connects to multiple
+\emph{prover} parties $\mathcal{P} = \{P_1, P_2, \cdots, P_q\}$, at least one of which is honest
+(the so-called \emph{any-trust}~\cite{arbitrum} or \emph{non-eclipsing}~\cite{eclipse,eclipse-ethereum}
+assumption). All provers beyond the one honest can be controlled by the adversary,
+and the verifier does not know which party among the provers is the honest one.
+The honest prover parties, beyond acting as provers for the verifier, are online full nodes participating
+in the proof-of-stake system, and each of them maintains a chain $\chain^{P_i}$.
+The job of the verifier is to discern the honest from the adversarial provers in order to extract
+information about the underlying chain. More specifically, the verifier wishes to
+discover the longest chain among a sea of shorter or invalid chains, and to deduce
+a fact about it, such as whether a particular payment was made.
+
+The protocols $V$, ran by the honest verifier, and $P$, ran by the honest prover, are
+\emph{multi-round interactive} protocols. When $V$ connects to the set $\mathcal{P}$ of provers,
+it can interrogate each of them, and may require the help of the other provers in this process.
+After the interrogation is over, the verifier outputs the \emph{current application state} of
+the underlying proof-of-stake blockchain. The application state is the commitment made by
+the blockchain to the current application data of the system: Either the current \emph{UTXO}
+tree, in the UTXO model~\cite{sok}, or the current \emph{accounts} tree, in the accounts
+model~\cite{buterin} (we assume that each block contains a commitment to the current
+application state~\cite{utreexo}). It is not necessary that the verifier outputs the
+\emph{whole} application state---a short Merkle tree commitment to it is sufficient.
+Subsequently, facts about the current state, such as whether a payment has been made,
+can be proven using standard Merkle tree proof techniques. The application state is
+sufficient for all the purposes of a wallet: Receiving and validating incoming payments
+and making new payments.
+
+We wish for the verifier to output a state consistent with the view of the honest parties.
+Ideally, this would be a state committed in the most recent stable block $\chain[-k]$ of
+an honestly adopted chain $\chain$.
+The transcript of all messages exchanged between $V$ and $\mathcal{P}$ after a protocol
+execution is completed is denoted $\textsc{VIEW}_{V \Leftrightarrow \mathcal{P}}$
+(the transcript contains only messages that have been processed by the receiver).
+
+\begin{definition}[Proof of Proof-of-Stake]
+  A \emph{Proof of Proof-of-Stake protocol} (PoPoS) is a pair of interactive probabilistic polynomial-time
+  algorithms $(P, V)$. The algorithm $P$ is the \emph{honest prover} and the algorithn $V$
+  is the \emph{honest verifier}. The algorithm $P$ is ran by an online participating full node
+  in a proof-of-stake system, while $V$ is ran by a node booting up for the first time
+  holding only the genesis block $\mathcal{G}$. The protocol is executed between $V$ and a
+  set of provers $\mathcal{P}$.
+\end{definition}
+
+Our security definition concerns the case of an honest verifier communicating with
+a set of possibly malicious provers (the case of a malicious verifier is of no concern).
+
+\begin{definition}[Security]
+  When executed with a set of provers $\mathcal{P}$ at least one of which is honest,
+  the verifier $V$ outputs the current application state of the chain in a manner
+  \emph{consistent} with the view of the honest parties: It either outputs a state
+  adopted by an honest party, or a state which \emph{will be adopted} by an honest party
+  within $k$ blocks.
+\end{definition}
+
+A trivial Proof of Proof-of-Stake protocol is to have $V$ run the full node code. In
+that case, the transcripts $\textsc{VIEW}_{V \Leftrightarrow \mathcal{P}}$ are long.
+The challenge we will take up is to make this protocol more efficient, or \emph{succinct}.
+Our goal is to design sublinear protocols.
+
+\begin{definition}[Succinctness]
+  Consider a PoPoS protocol $(P, V)$ with a set of provers $\mathcal{P}$ operating in
+  an underlying proof-of-stake system where the longest honestly adopted chain is $\chain$.
+  The protocol is \emph{succinct} if every transcript length
+  $|\textsf{VIEW}_{V \Leftrightarrow \mathcal{P}}| \in \mathcal{O}(\textsf{poly}\log|\chain|)$
+\end{definition}
+
+In the above definition, we assume that $\mathcal{P}$ is of constant size.

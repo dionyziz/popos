@@ -1,8 +1,91 @@
 \section{Discussion and Future Work}
 
+\noindent
+\textbf{Interactivity.}
+The interactivity in our protocol is undesirable. Contrary to linear bootstrapping protocols in which the
+bottleneck in practice comes down to the bandwidth needed to download all the data, in our protocol,
+because the communication complexity we have achieved is so low,
+the practical bottleneck in the protocol comes down to the interactivity.
+This interactivity is inherent to our construction and is difficult to remove.
+In contrast to standard complexity
+proof protocols (such as zero-knowledge proofs), our interactivity cannot be removed using the Fiat--Shamir
+heuristic~\cite{fiatshamir}. The reason here is that we require two provers to challenge each other under the watchful
+eyes of the verifier. Such behavior cannot be emulated by the random sampling that Fiat--Shamir would offer,
+in which a \emph{single} prover and \emph{single} verifier interaction is emulated.
+However, even though the protocol has inherent logarithmic interactivity, in practice the actual number
+of interaction rounds can be reduced with a couple of techniques:
+
 \begin{enumerate}
-  \item Remove interactivity
-  \item Unify work/stake
-  \item Trusted setup assumption in a PoS setting?
+\item When the attacker is challenging
+the defender, instead of the attacker asking the defender to \emph{open left} or \emph{open right},
+the attacker can accompany the request with his own version of what nodes he expects to see on the
+\emph{left} and on the \emph{right}~\cite{inside-arbitrum}.
+That
+way, the defender can immediately be asked to open the next level, wherever it might be unmatching,
+too. This reduces the number of
+rounds in the interaction by a factor of two. But this technique cannot be applied multiple times
+(preemptively opening the tree many subsequent levels deep), because
+it quickly leads to an exponential blowup of communication cost with meager savings in interactivity.
+\item In case both trees have the same
+claimed size, two bisection games are required, but these can run in parallel: When the one party responds to the challenge
+of the other, he can accompany the first challenge response with a different challenge of his own. The paths of the
+tree that are opened in these parallel games may be completely different, and there is no interaction between
+the two games. This optimization has the effect
+that, even if the two trees have the same size, the number of interactions will be the same as if
+only one bisection game was played.
+\item The base of the logarithm can be increased from $2$ to
+a larger number. This is a trade-off: the larger the base of the logarithm, the fewer rounds of
+interactivity are required, but at the same time, more data need to be sent in each round of interaction.
+The base of the logarithm parameter does not have to be preset, and can be specified by the verifier
+depending on factors such as the network connection performance, to balance latency (high latency
+means we want less interactivity) and bandwidth (low bandwidth means we want more interactivity
+but small amounts of data per round of interaction).
+\item The tournament
+between multiple provers can involve bisection games played in parallel. If the verifier speaks to $8$
+provers, once every prover commits to his tree root, the verifier can have the provers compete with
+each other in $4$ bisection games running simultaneously over the network, to reduce latency.
+The $4$ remaining provers can play against each other in $2$ bisection games running in parallel,
+and so forth. Although this does not decrease the number of interactions, the actual network delay
+will be significantly reduced as compared to challenging the parties one-by-one.
 \end{enumerate}
 
+Despite the above optimizations, the asymptotic interaction remains $\mathcal{O}(\log n)$.
+The problem of \emph{Non-Interactive} Proof of Proof-of-Stake (NIPoPoS), PoPoS that can run in
+just a single interaction, is left for future work.
+
+\noindent
+\textbf{Trusted Setup.}
+Our protocol was developed in the standard model and does not require a trusted setup.
+The underlying proof-of-stake protocol \emph{does} have some trusted setup assumption:
+The genesis epoch contains the public keys of a committee who, at the time of the epoch,
+were assumed to have an honest majority. The fact that our protocol does not leverage that
+trust to build zero knowledge or other constructions has certain advantages. We only use
+hashes and signatures. This makes the protocol easy to understand and straightforward to implement,
+with a limited attack surface, a great advantage in security-critical protocols. But also,
+in case the trusted setup assumption is violated, our protocol can readily provide evidence
+of what exactly happened, because it does not rely on that assumption: At the exact point
+where two provers disagree at the bisection game, the evidence presented illustrates two
+different epochs at the same index accompanied by their different randomnesses, a situation
+that should not occur. In contrast,
+a zero-knowledge proof in case of trusted setup failure can lead to decisions in which
+foul play may be undetectable, and certainly the exact point and conditions of first
+failure are difficult to pinpoint. Additionally, the simplicity of our construction makes
+it possible to implement very efficient provers and verifiers in practice. Despite the
+slightly worse asymptotics, we expect our construction to perform better in concrete
+terms than zero knowledge proof systems that feature large constants in their complexities.
+
+\noindent
+\textbf{Proof-of-Work extensions.}
+Our tree-based protocol cannot be readily extended to proof-of-work. To see why, consider
+a ``chain tree'' similar to our handover tree, but storing the proof-of-work chain in its leaves.
+One could na\"ively imagine that two provers can run a similar bisection protocol to
+find the first difference in this tree. But note that, contrary to proof-of-stake epochs,
+there can be multiple trees that are \emph{admissible} here, and they are not prefixes of one
+another. For example, if a mining adversary chooses to mine a secret chain starting
+somewhere in the middle of the honest chain, she will end up with a ``chain tree'' whose first
+difference with the honest tree will be the first secret block. At that point, the honest
+verifier has nothing to see; both trees look equally valid when the leaves are revealed. Therefore,
+this scheme cannot be readily applied to \emph{chains}, but must remain constructed on top of
+\emph{epochs}, as we chose to do. The closest related proof-of-work construction is FlyClient~\cite{flyclient}
+in which leaves are opened at random until foul play is detected, but no bisection games
+are played.

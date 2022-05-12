@@ -1,0 +1,30 @@
+\begin{algorithm}[H]
+    \caption{\label{alg.bootstrap-prover}
+      The honest prover, helping a verifier
+      bootstrap and confirm the inclusion of a transaction $\tx$.
+      The verifier holds an admissible handover tree $\pi$.}
+
+    \begin{algorithmic}[1]
+        \Function{\sf P.bootstrap}{$V, d, \chain$}
+            \Let{\tx, \pi}{V}
+            \Let{z_1}{\textsf{MT-prove}(d, \pi, m - 1)}
+            \State{Send $z_1$, $\overline{pk}_{m - 1}$ to $V$}
+            \Let{\chain^*}{\text{filter $\chain$ to slots $S[-6k{:}-4k]$}}
+            \State{Send $\chain^*$ to $V$}
+            \Let{b^*}{\chain^*[0]}
+            \Let{sl}{\text{slot after which $\tx$ was confirmed}}
+            \Let{S}{\{sl, \cdots, sl + 2k\}}
+            \Let{\overline{pk}'}{\text{slot leaders of $S$}}
+            \Let{\textsf{leaders}}{\text{leaders of \emph{all} slots so far}}
+            \Let{z_2}{\textsf{MT-prove}(\textsf{leaders}, b^*\textsf{.leaders}, S)}
+            \State{Send $z_2$ to $V$}
+            \Let{\chain'}{\text{filter $\chain$ for slots $S$}}
+            \Let{b}{\text{block of $\chain$ where $\tx$ is included}}
+            \State{Send $b$ to $V$}
+            \Let{i}{\text{index of $\tx$ in $b\textsf{.txs}$}}
+            \Let{z_3}{\textsf{MT-prove}(b.\overline{\textsf{txs}}, b\textsf{.txs}, i)}
+            \State{Send $z_3$ to $V$}
+        \EndFunction
+    \vskip2pt
+    \end{algorithmic}
+\end{algorithm}
