@@ -1,169 +1,132 @@
 \subsection{Sync Committee \& Light Client}
-Building light clients for a PoS system is much more complex than that for a PoW system. 
-In a PoW system, it is sufficient to verify that the nonce in the block header leads to a block hash under the difficulty range, and the blocks are connected sequentially starting from the genesis. 
-This construction works because generating a valid chain with the above properties is as difficult as generating the original chain. 
-Whereas in the PoS system, we need to know the correct block proposers for the slot to verify the block header. 
-The stake distribution $SD_j$ and random value $\eta_j$ for an epoch determine the block-proposer for slots. 
-The block-headers of epoch $j$ might contain the Merkle roots of $SD_j$ and the $\eta_j$. 
-It is not clear how a light client can verify the correctness of the Merkle roots $SD_j$ and $\eta_j$ without the access to the complete $SD_{j - 1}$, $\eta_{j - 1}$ and then linearly applying the stake changes to $SD_{j - 1}$ for every $tx$ (transaction) in epoch $j - 1$. 
-However, this will defy the purpose of building a light client as the complexity would include verification of every transaction. 
+\label{sec:sync-committee}
   
-For Oroborous protocol $SD_j$ and $\eta_j$ are already fixed 6k slots before the start of the epoch. 
-This allows to commit the merkle roots of $SD_j$ and $\eta_j$ in slots $S_{j - 1}[-6k: -4k]$. 
-A similar argument to PoPoS construction using Honest Subsequence [\ref{HonestSubsequence}] and Chain Growth [\ref{ChainGrowth}] can be made to prove the correctness of $k + 1$ blocks. 
-Hence using this trick, for Oroborous protocol $SD_j$ and $\eta_j$ can be verified without knowing $SD_{j - 1}$, $\eta_{j - 1}$ and linearly applying all $tx$ from epoch $j - 1$. 
+The flagship feature of the recent Altair hard fork is a minimal light client construction
+for the PoS Ethereum beacon chain \cite{minimal_light_client}.
+The construction adds two components to the specification: \emph{Sync committees} and the functionality for 
+the light clients to find an up-to-data canonical beacon chain header with the help of the sync committees.
   
-Gasper does not guarantee the Honest Subsequence [\ref{HonestSubsequence}] or the Chain Growth[\ref{ChainGrowth}]; hence the similar argument as Oroborous cannot be applied to build a light client for Gasper. 
-To allow the Ethereum Beacon chain, based on Gasper, to be light client-friendly \textbf{Sync protocol} was introduced in the Altair Ethereum upgrade \cite{EthereumConcensusSpecs}. 
-The Sync protocol adds two components to the specification:
-\begin{enumerate}
-    \item Add sync committee role for a set of validators with appropriate participation rewards and penalties.
-    \item Specify a minimal light client for beacon chain based on sync committee.
-\end{enumerate}
-  
-\paragraph{Sync committee} is a set of 512 validators chosen randomly from the complete validator set. 
-Validators are selected to become a sync committee based on the stakes owned by the validator. 
-A sync committee is fixed for 256 epochs ($\sim$ 1day), also referred to \textbf{Sync Period}. 
-The sync committee is responsible for signing the tip of the beacon chain for every slot during the sync period. 
-The block proposer of the next slot aggregates the sync committee signatures from the last slot and includes the aggregated signature in the block-header. 
-Precisely the \href{https://github.com/ethereum/consensus-specs/blob/dev/specs/altair/beacon-chain.md#beaconblockbody}{BeaconBlockBody} (data structure for beacon chain block-header) consist of \textbf{sync\_aggregate} of type \href{https://github.com/ethereum/consensus-specs/blob/dev/specs/altair/beacon-chain.md#syncaggregate}{SyncAggregate}. 
-The SyncAggregate is struct with two parameters \textbf{sync\_committee\_bits} and \textbf{sync\_committee\_signature}. 
-The sync\_committee\_bits is a bit vector of size 512 representing the participation of the sync committee for the previous slot, and sync\_committee\_signature is a BLS aggregate signature from those participants. 
-Each sync committee participant is rewarded a fixed amount for every sync signature that is included and penalized if the participant fails to submit the sync signature. 
-The reward amount is the same as the penalty amount. 
-  
-The sync committee is known one period in advance. 
-The \textbf{current\_sync\_committee} and \textbf{next\_sync\_committee} is stored in the \href{https://github.com/ethereum/consensus-specs/blob/dev/specs/altair/beacon-chain.md#beaconstate}{BeaconState} and the Merkle root of the the BeaconState is stored in the BeaconBlockBody. 
-As the current sync committee signs the BeaconBlockBody for blocks in the period, a Merkle inclusion proof can be made of the next\_sync\_committee to state root in BeaconBlockBody, the current sync committee indirectly attests to the next sync committee. 
-The sync committee signatures form a chain of sync committees starting from the genesis sync committee, where every committee signs the next committee. 
-The sync committee and sync signatures are similar to the epoch leaders and handover signatures from the PoPoS construction.   
+\paragraph{Sync Committee} 
+Sync committee consists of 512 validators that are sampled uniformly at random from the validator 
+set every sync committee \emph{period}.
+Each period lasts $256$ epochs, approximately $27$ hours.
+During the period, each validator of the corresponding committee is responsible for signing the header of the block
+viewed as the new tip of the beacon chain at each slot.
+% Can we change this to signing each confirmed block?
+The proposer of each slot in turn collects the sync committee signatures on the hash of the block 
+that was observed as the tip of the beacon chain in the previous slot, 
+and includes the aggregated signature in the header of its proposal as part of a $\mathsf{SyncAggregate}$ struct
+%(\cf \href{https://github.com/ethereum/consensus-specs/blob/dev/specs/altair/beacon-chain.md#beaconblockbody}{BeaconBlockBody}) 
+\cite{altair}.
+The $\mathsf{SyncAggregate}$ struct also contains a bit vector of size 512 that indicates the sync committee members 
+who have contributed to the aggregate signature.
+Each sync committee member that contributed to the signature is rewarded a fixed amount, 
+whereas the remaining members are penalized by the same amount.   
    
 \paragraph{Light Client}
-Once we have a chain of sync committees, we can verify the sync committee for each period instead of verifying the beacon chain blocks themselves. 
-The sync committee chain allows verifying the beacon chain without using the stake distribution table. 
-Also, the sync committee changes slowly (once every day), so the light client has to verify only one committee per period.
-Before we formalize the construction of the light client, let us define finality in terms of the sync committee. 
 
-\begin{definition}[Sync Finalized]
-  A block is Sync Finalized if and only if it has \> 2/3 valid signatures from the current sync committee. 
-  \end{definition}
-  \begin{remark}
-  The Sync Finalized is not the same as the finalization of Gasper. The Gasper finalization provides much more security. 
-  The official specification refers to both finalizations as just finalized, but we use "Sync Finalized" to make the distinction for this paper.
-  \end{remark}
-  The light client specified by the Ethereum consensus repository works by iteratively verifying the sync committee for each period starting from the genesis. 
-  Let us suppose the light client knows the sync committee for period $n$ to verify the sync committee for the period $n + 1$ it only needs a single sync finalized block from period $n$. 
-  Once it gets such a block and sync signatures, the light client can check the finality conditions and confirm the next sync committee available in the BeaconBlockBody. 
-  The light client can do this until it reaches the latest sync committee. 
-  Once it has verified the latest sync committee, it can simply verify any finalised block in this period. 
-  The finalized block, sync aggregate signatures, the Merkle inclusion of next\_sync\_committee into the BeaconBlockBody, and some metadata is packed into a single data structure referred to as \textbf{SyncUpdate} in the specification. 
-  This structure allows for building a standard API exposed by the full nodes such that light clients can efficiently query all the data required to sync.      
-  \begin{lstlisting}[language=Python,caption={The above code is from the light client specification \cite{EthereumConcensusSpecs}},captionpos=b]
-  class LightClientUpdate(Container):
-    # The beacon block header that is attested to by the sync committee
-    attested_header: BeaconBlockHeader
-    # Next sync committee corresponding to the active header
-    next_sync_committee: SyncCommittee
-    next_sync_committee_branch: Vector[Bytes32, floorlog2(NEXT_SYNC_COMMITTEE_INDEX)]
-    # The finalized beacon block header attested to by Merkle branch
-    finalized_header: BeaconBlockHeader
-    finality_branch: Vector[Bytes32, floorlog2(FINALIZED_ROOT_INDEX)]
-    # Sync committee aggregate signature
-    sync_aggregate: SyncAggregate
-    # Fork version for the aggregate signature
-    fork_version: Version
-\end{lstlisting}
-  
-There can be cases certain blocks do not surpass the 2/3 sync committee requirement. 
-Such cases can happen if a set of sync committee nodes is offline, or if signatures did not arrive to the block proposer because of network delay, or if the block proposer is malicious. 
-In such a case, the block cannot be used to verify the next sync committee. 
-The current official specification still recommends using some heuristic to accept such a block for verifying the latest block header.  
-  
-The Gasper consensus used by PoS Ethereum provides safety guarantees that no conflicting blocks can get finalized without 1/3 slashibility and proves probabilistic liveness. 
-The current specification does not prove the safety and liveness of the sync protocol. 
-Based on the safety and liveness assumption of the Gasper protocol, we would like to understand the safety and liveness of the sync protocol.  
+Light client relies on the sync committee signatures to detect the last beacon blocks finalized by the consensus protocol.
+%Are we assuming that the light client tries to boot up with the Casper FFG finalized blocks? 
+In this context, to identify the last finalized block, light client has to only verify the sync committee for each period instead 
+of verifying the beacon blocks themselves or using the stake distribution table.
+To distinguish the block identified by the light client with the help of the sync committee from those finalized by the consensus
+protocol, we will call the earlier ones \emph{sync-finalized}, and the latter \emph{consensus-finalized}.
+An ideal light client protocol ensures that the latest sync-finalized block in the view of a light client is a recent
+consensus-finalized block, a property captured by the light client security (\cf Definition~\ref{def:light-client-security}$
 
-\begin{definition}[Safety of Sync Protocol]
-There will be no conflicting finalised blocks.  
+The full view of a light client at a given round, summarized by a $\mathsf{LightClientStore}$ object, 
+consists of the following core components:
+\begin{itemize}
+    \item the last sync-finalized beacon block header, $\mathsf{finalized_header}$.
+    \item the current sync committee, $\mathsf{current_sync_committee}$, corresponding to the period
+    containing the slot of $\mathsf{finalized_header}$.
+    \item the next sync committee $\mathsf{next_sync_committee}$ for the next period. 
+    As the state of each beacon block specifies the sync committee for the next period,
+    $\mathsf{next_sync_committee}$ matches the committee specified by $\mathsf{finalized_header}$. 
+\end{itemize}
+
+The light client updates its view when it receives a $\mathsf{LightClientUpdate}$ object over the network, 
+which consists of the following parts: 
+\begin{itemize}
+    \item A beacon block header, $\mathsf{attested_header}$, signed by the corresponding sync committee.
+    \item A beacon block header, $\mathsf{finalized_header}$, to be accepted as the new sync-finalized block.
+    \item A new next sync committee $\mathsf{next_sync_committee}$ to replace the old one within the $\mathsf{LightClientStore}$.
+    \item A Merkle inclusion proof $\mathsf{next_sync_committee_branch}$ for the $\mathsf{next_sync_committee}$.
+    \item A Merkle inclusion proof $\mathsf{finality_branch}$ for the $\mathsf{finalized_header}$.
+    \item A $\mathsf{sync_aggregate}$ object, consisting of an aggregate BLS signature and a bit vector that specifies
+    the sync committee members that has contributed to the signature.
+    \item A signature slot, $\mathsf{signature_slot}$ that corresponds to the slot of the $\mathsf{attested_header}$.
+\end{itemize}
+
+Upon receiving an update, the light client verifies it through the following process:
+It first checks if $\mathsf{signature_slot}$, the slot of the $\mathsf{attested_header}$,
+is larger than that of the $\mathsf{finalized_header}$, and the slot of its last sync-finalized block.
+It also verifies if $\mathsf{signature_slot}$ is within the same or the next period given the period 
+corresponding to the last sync-finalized block.
+The client rejects updates containing signatures from sync committees that are more than one period in the future.
+
+Next, the client verifies the inclusion of the $\mathsf{finalized_header}$ within the state 
+of the $\mathsf{attested_header}$ through the $\mathsf{finality_branch}$.
+Then, if $\mathsf{finalized_header}$ is from the next period, the client verifies the inclusion of the
+$\mathsf{next_sync_committee}$ within the state of $\mathsf{finalized_header}$ through $\mathsf{next_sync_committee_branch}$.
+Finally, it validates the aggregate signature within the $\mathsf{sync_aggregate}$ on the $\mathsf{attested_header}$ 
+using the bitmap and the sync committee of the period containing the $\mathsf{signature_slot}$.
+The client knows the sync committee as the period containing the $\mathsf{signature_slot}$ is either the same as 
+that of the last sync-finalized block, or one larger, in which case it uses the $\mathsf{current_sync_committee}$ or 
+the $\mathsf{next_sync_committee}$ within its $\mathsf{LightClientStore}$ respectively to verify the aggregate signature.
+
+It is possible that an update does not specify a $\mathsf{finalized_header}$. 
+In this case, the light client treats the $\mathsf{attested_header}$ as the header to be accepted 
+as the new sync-finalized block, and goes through the same checks described above.
+
+Finally, upon verifying an update, if the $\mathsf{attested_header}$
+was signed by over $2/3$ of the corresponding sync committee, then the light client replaces
+its last sync-finalized beacon block header with the $\mathsf{finalized_header}$ within the update if it
+was specified, and with the $\mathsf{attested_header}$ otherwise.
+If the new sync-finalized block is from a higher period, then the client also updates 
+the $\mathsf{current_sync_committee}$ and the $\mathsf{next_sync_committee}$ within its view.
+In particular, the new $\mathsf{current_sync_committee}$ attains the value of the old $\mathsf{next_sync_committee}$ 
+within the $\mathsf{LightClientStore}$, whereas the new $\mathsf{next_sync_committee}$ becomes 
+the $\mathsf{next_sync_committee}$ contained in the update, \ie, the committee within the new sync-finalized block.
+
+Due to network delays or temporary adversarial majorities, it might occasionally be the case that
+no consensus-finalized beacon block within a period is signed by $2/3$ of the corresponding sync committee. 
+Then, the light client updates cannot be verified, and the client cannot catch up with the tip of the consensus-finalized chain.
+The current official Ethereum specification recommends using some heuristic methods to allow the client verify
+the latest block headers.
+However, despite succeeding in a forced update, such heuristics might harm the light client security
+under certain adversarial conditions.
+Thus, in this work, we assume that the underlying consensus protocol is not subject to such disruptions, 
+and consider the single update mechanism described above.
+%Should we also describe the forced update upon timeout? The regular update mechanism should be sufficient for our
+% super light client mechanism.
+
+A sequence of valid light client updates corresponding to old periods is sufficient for a light client 
+to identify a finalized block from consecutive periods, up until the latest period.
+This enables the light client to bootstrap with the consensus-finalized header chain by downloading only
+25 kB per period: 24576 bytes for the 512 48-byte public keys in the sync committee, plus a few hundred bytes for auxiliary data.
+However, since the total number of periods is linear in the time passed and the number of blocks in the consensus-finalized chain,
+the light client would still be downloading data linear in the size of the header chain.  
+To further reduce the download and execution complexity of a bootstrapping light client, we next describe how the
+PoPoS protocol can be used in the context of Ethereum light clients.
+
+\paragraph{Security for Light Clients}
+
+Let $\L^{\cup}_{r'}$ denote the chain that corresponds to the \emph{union} of all consensus-finalized chains held by the honest validators at round $r'$.
+Similarly, let $\L^{\cap}_{r}$ denote the chain that corresponds to the \emph{intersection} of all consensus-finalized chains held by the honest validators at round $r$.
+Given these definitions, security for a light client protocol, \eg, Ethereum's sync protocol, can be expressed as follows:
+\begin{definition}
+\label{def:light-client-security} 
+A light client protocol is secure with safety parameter $\nu$, if the sync-finalized beacon block header,
+obtained by the client at the end of the protocol execution at round $t$ satisfies safety and liveness as defined below:
+
+There exists a ledger $\L$ such that $\L[{:}-1]$ is the sync-finalized beacon block, and for all rounds $t' \geq t + \nu$:
+\begin{itemize}
+    \item \textbf{Safety:} $\L$ is a prefix of $\L^{\cup}_{r'}$.
+    \item \textbf{Liveness:} $\L$ is a suffix of $\L^{\cap}_{r}$.
+\end{itemize}
+
 \end{definition}
-  
-\begin{definition}[Liveness of Sync Protocol]
-There will exist at least one sync finalized block per sync period.  
-\end{definition}
-  
-For the safety of the sync protocol, we would like to have no two conflicting blocks (block in different branch with a common ancestor) finalized. 
-Conflicting blocks can have different sync committees, making it impossible for an external light client to decide which of them is correct. 
-If there are two conflicting finalized blocks, then there must \> 1/3 of the sync committee that has signed conflicting blocks. 
-The Gasper protocol assumes that \> 2/3 honest stake majority and the sync committee validators are randomly chosen out of this validator set. 
-Assuming that the underlying validator set has \> 2/3 honest majority, the sync committee should also have the same distribution. 
-However, an honest Gasper node might behave malicious sync committee node. 
-Gasper enforces honesty by slashing, whereas there is no slashing in the sync protocol for signing conflicting blocks. 
-Also, sync protocol is not secure against adaptive adversaries. An adaptive adversary can make a targeted attack on an individual sync committee by bribing an individual committee to behave maliciously. 
-The protocol should still be secure with an adaptive adversary where the adaptivity rate is more than one period plus network delay. 
-We can consider the lower limit to be two periods to be safe. 
- 
-For the liveness of the sync protocol, we would like to have at least one sync finalized block per sync period. 
-The sync finalized block is required for the light client to verify the next sync committee. 
-If there is no sync finalized block in the period, the light client cannot verify the next sync committee. 
-Even if the underlying consensus is live, it does not guarantee the liveness of sync protocol. 
-There is a penalty for the sync committee for every slot in the sync period that they do not sign. 
-Thought hypothetically, there can be an incentive for not signing by hacking the light client based on sync protocol, and this incentive could be higher than the penalty. 
-The empirical data in plot \ref{fig:committee-participation} shows that the average sync committee participation during each period is much higher than the 2/3s margin.
-  
-\begin{figure}[h!]
-    \begin{center}
-        \input{committee-participation.pgf}
-    \end{center}
-    \caption{The plot shows the average sync committee participation of for different sync periods}
-    \label{fig:committee-participation}
-\end{figure}
 
-For the PoS Ethereum superlight client construction, we would like to have both the safety and liveness of the sync protocol.
-The construction explained in this paper would also be vulnerable to safety and liveness issues that exist on the sync protocol or attacks on the PoS Ethereum consensus\cite{DBLP:journals/corr/abs-2110-10086,AttackOnEthereum}. 
-If the Ethereum protocol fixes these issues in future without removing the sync protocol itself, the superlight client would also benefit in the same way as the light client. 
   
-\subsection{Superlight Client for PoS Ethereum}
-The main drawback of the PoPoS construction is that it requires changes in the consensus protocol, which would need a hard-fork. 
-The blockchain community does not appreciate hard-forks, and hard-fork requires all the validators to upgrade their software to support the new consensus changes. 
-The security of the blockchain is majorly reduced during the upgrade process. 
-The network is divided into validators who have upgraded their software and validators who have not. 
-It is also a complex process to propose a change that would require a hard-fork, and it might take months for it to be accepted and released.
-This paper proposes a protocol that does not require any hard-fork. 
-
-If we can find an analogous check to the handover scheme in the current PoS Ethereum protocol, we can achieve the same benefits without a hard-fork. 
-As discussed in the previous section, the sync protocol provides a simple way to sync to the latest state of the chain by quickly verifying the sync chain. 
-Let us consider the public keys of the sync committee at period $j$ as $c_j$ and any valid 2/3 signatures of a finalised block from period $j$ as $\tau_j$. 
-We can modify the PoPoS construction to work with sync protocol as follows:
-\begin{enumerate}
-    \item Instead of using the sequence $(pk_0, pk_1, ... pk_m$) to construct the merkle tree we will use $(c_0, c_1, ... c_l)$ where $l$ is the last period
-    \item Instead of using $\sigma_{j - 1}$ (handover signatures) to validate $pk_j$ we will use $\tau_{j - 1}$ (sync committee signature).
-    \item $\tau_j$ is valid if it is a set of valid signature from $>2/3$ sync committee of period $j$
-\end{enumerate}
-   
-The primary protocol remains the same. 
-The client connects with two provers. 
-One of them is surely honest. 
-It asks for the Merkle roots of sync committee chains. 
-If the roots are the same, then both the provers are honest, and the last committee of any one of them could be used. 
-If they are not the same, the provers go through a bisection game. 
-At the end of the bisection game, either one of the provers has already lost, or the client knows the first point of disagreement $j$. 
-Once the client knows the first point of disagreement, then it remains to get the previous committee $c_{j - 1}$ and $\tau_{j - 1}$ from both provers. 
-From the safety assumption of the sync protocol, only one of the provers should be able to present the valid signatures.
-   
-\subsubsection{Handling different chain sizes in case of network delays}
-While describing the PoPoS construction, we assumed that all the provers have the exact tree sizes. 
-The tree sizes might not be the same, even for the honest nodes. 
-The honest nodes can have ledgers at different latest epochs because of the network delay. 
-The common prefix property of the blockchain still guarantees that two honest chains will only differ by k blocks. 
-In the case of our superlight client construction, as the sync period is roughly one day, it is big enough to overcome any network delay between nodes. 
-Some honest nodes might not have seen a sync finalized block during the period boundaries. 
-Hence, honest nodes can differ by max one sync period in such cases. 
-To avoid this issue, we can do the following. 
-To verify the latest sync committee $c_l$, we only need one sync finalized block from period $l - 1$.
-The nodes might not have a sync finalized block from period $l$, but they must have a sync finalized block from the previous period $l - 1$. 
-Also, the current sync period can be calculated based on the current timestamp. 
-Hence in our construction, the prover can calculate the current period and construct the committee Merkle tree where the last committee is the current committee which can be verified using the sync finalized block from the last period. 
-The client can also calculate the current sync period based on the timestamp and will know beforehand the size of the tree of an honest prover. 
-Provers and Clients can still have clocks out of sync on the period boundaries. 
-To solve this, the client should not sync for a small window of time greater than the network delay on the period boundaries.    
    
