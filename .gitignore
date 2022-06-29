@@ -1,7 +1,7 @@
 # Exclude compiled output file
 popos.pdf
 
-## Core latex/pdflatex auxiliary files:
+## Core latex/pdflatex/latexmk auxiliary files:
 *.aux
 *.lof
 *.log
@@ -16,6 +16,7 @@ popos.pdf
 .*.lb
 *.swp
 *.swo
+*.fdb_latexmk
 
 ## Intermediate documents:
 *.dvi
@@ -53,3 +54,6 @@ latex.out/
 
 # macOS files
 .DS_Store
+
+# VS Code files
+.vscode/
