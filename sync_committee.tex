@@ -37,57 +37,57 @@ consensus-finalized block, a property captured by the light client security (\cf
 The full view of a light client at a given round, summarized by a $\mathsf{LightClientStore}$ object, 
 consists of the following core components:
 \begin{itemize}
-    \item the last sync-finalized beacon block header, $\mathsf{finalized_header}$.
-    \item the current sync committee, $\mathsf{current_sync_committee}$, corresponding to the period
-    containing the slot of $\mathsf{finalized_header}$.
-    \item the next sync committee $\mathsf{next_sync_committee}$ for the next period. 
+    \item the last sync-finalized beacon block header, $\mathsf{finalized\_header}$.
+    \item the current sync committee, $\mathsf{current\_sync\_committee}$, corresponding to the period
+    containing the slot of $\mathsf{finalized\_header}$.
+    \item the next sync committee $\mathsf{next\_sync\_committee}$ for the next period. 
     As the state of each beacon block specifies the sync committee for the next period,
-    $\mathsf{next_sync_committee}$ matches the committee specified by $\mathsf{finalized_header}$. 
+    $\mathsf{next\_sync\_committee}$ matches the committee specified by $\mathsf{finalized\_header}$. 
 \end{itemize}
 
 The light client updates its view when it receives a $\mathsf{LightClientUpdate}$ object over the network, 
 which consists of the following parts: 
 \begin{itemize}
-    \item A beacon block header, $\mathsf{attested_header}$, signed by the corresponding sync committee.
-    \item A beacon block header, $\mathsf{finalized_header}$, to be accepted as the new sync-finalized block.
-    \item A new next sync committee $\mathsf{next_sync_committee}$ to replace the old one within the $\mathsf{LightClientStore}$.
-    \item A Merkle inclusion proof $\mathsf{next_sync_committee_branch}$ for the $\mathsf{next_sync_committee}$.
-    \item A Merkle inclusion proof $\mathsf{finality_branch}$ for the $\mathsf{finalized_header}$.
-    \item A $\mathsf{sync_aggregate}$ object, consisting of an aggregate BLS signature and a bit vector that specifies
+    \item A beacon block header, $\mathsf{attested\_header}$, signed by the corresponding sync committee.
+    \item A beacon block header, $\mathsf{finalized\_header}$, to be accepted as the new sync-finalized block.
+    \item A new next sync committee $\mathsf{next\_sync\_committee}$ to replace the old one within the $\mathsf{LightClientStore}$.
+    \item A Merkle inclusion proof $\mathsf{next\_sync\_committee\_branch}$ for the $\mathsf{next\_sync\_committee}$.
+    \item A Merkle inclusion proof $\mathsf{finality\_branch}$ for the $\mathsf{finalized\_header}$.
+    \item A $\mathsf{sync\_aggregate}$ object, consisting of an aggregate BLS signature and a bit vector that specifies
     the sync committee members that has contributed to the signature.
-    \item A signature slot, $\mathsf{signature_slot}$ that corresponds to the slot of the $\mathsf{attested_header}$.
+    \item A signature slot, $\mathsf{signature\_slot}$ that corresponds to the slot of the $\mathsf{attested\_header}$.
 \end{itemize}
 
 Upon receiving an update, the light client verifies it through the following process:
-It first checks if $\mathsf{signature_slot}$, the slot of the $\mathsf{attested_header}$,
-is larger than that of the $\mathsf{finalized_header}$, and the slot of its last sync-finalized block.
-It also verifies if $\mathsf{signature_slot}$ is within the same or the next period given the period 
+It first checks if $\mathsf{signature\_slot}$, the slot of the $\mathsf{attested\_header}$,
+is larger than that of the $\mathsf{finalized\_header}$, and the slot of its last sync-finalized block.
+It also verifies if $\mathsf{signature\_slot}$ is within the same or the next period given the period 
 corresponding to the last sync-finalized block.
 The client rejects updates containing signatures from sync committees that are more than one period in the future.
 
-Next, the client verifies the inclusion of the $\mathsf{finalized_header}$ within the state 
-of the $\mathsf{attested_header}$ through the $\mathsf{finality_branch}$.
-Then, if $\mathsf{finalized_header}$ is from the next period, the client verifies the inclusion of the
-$\mathsf{next_sync_committee}$ within the state of $\mathsf{finalized_header}$ through $\mathsf{next_sync_committee_branch}$.
-Finally, it validates the aggregate signature within the $\mathsf{sync_aggregate}$ on the $\mathsf{attested_header}$ 
-using the bitmap and the sync committee of the period containing the $\mathsf{signature_slot}$.
-The client knows the sync committee as the period containing the $\mathsf{signature_slot}$ is either the same as 
-that of the last sync-finalized block, or one larger, in which case it uses the $\mathsf{current_sync_committee}$ or 
-the $\mathsf{next_sync_committee}$ within its $\mathsf{LightClientStore}$ respectively to verify the aggregate signature.
+Next, the client verifies the inclusion of the $\mathsf{finalized\_header}$ within the state 
+of the $\mathsf{attested\_header}$ through the $\mathsf{finality\_branch}$.
+Then, if $\mathsf{finalized\_header}$ is from the next period, the client verifies the inclusion of the
+$\mathsf{next\_sync\_committee}$ within the state of $\mathsf{finalized\_header}$ through $\mathsf{next\_sync\_committee\_branch}$.
+Finally, it validates the aggregate signature within the $\mathsf{sync\_aggregate}$ on the $\mathsf{attested\_header}$ 
+using the bitmap and the sync committee of the period containing the $\mathsf{signature\_slot}$.
+The client knows the sync committee as the period containing the $\mathsf{signature\_slot}$ is either the same as 
+that of the last sync-finalized block, or one larger, in which case it uses the $\mathsf{current\_sync\_committee}$ or 
+the $\mathsf{next\_sync\_committee}$ within its $\mathsf{LightClientStore}$ respectively to verify the aggregate signature.
 
-It is possible that an update does not specify a $\mathsf{finalized_header}$. 
-In this case, the light client treats the $\mathsf{attested_header}$ as the header to be accepted 
+It is possible that an update does not specify a $\mathsf{finalized\_header}$. 
+In this case, the light client treats the $\mathsf{attested\_header}$ as the header to be accepted 
 as the new sync-finalized block, and goes through the same checks described above.
 
-Finally, upon verifying an update, if the $\mathsf{attested_header}$
+Finally, upon verifying an update, if the $\mathsf{attested\_header}$
 was signed by over $2/3$ of the corresponding sync committee, then the light client replaces
-its last sync-finalized beacon block header with the $\mathsf{finalized_header}$ within the update if it
-was specified, and with the $\mathsf{attested_header}$ otherwise.
+its last sync-finalized beacon block header with the $\mathsf{finalized\_header}$ within the update if it
+was specified, and with the $\mathsf{attested\_header}$ otherwise.
 If the new sync-finalized block is from a higher period, then the client also updates 
-the $\mathsf{current_sync_committee}$ and the $\mathsf{next_sync_committee}$ within its view.
-In particular, the new $\mathsf{current_sync_committee}$ attains the value of the old $\mathsf{next_sync_committee}$ 
-within the $\mathsf{LightClientStore}$, whereas the new $\mathsf{next_sync_committee}$ becomes 
-the $\mathsf{next_sync_committee}$ contained in the update, \ie, the committee within the new sync-finalized block.
+the $\mathsf{current\_sync\_committee}$ and the $\mathsf{next\_sync\_committee}$ within its view.
+In particular, the new $\mathsf{current\_sync\_committee}$ attains the value of the old $\mathsf{next\_sync\_committee}$ 
+within the $\mathsf{LightClientStore}$, whereas the new $\mathsf{next\_sync\_committee}$ becomes 
+the $\mathsf{next\_sync\_committee}$ contained in the update, \ie, the committee within the new sync-finalized block.
 
 Due to network delays or temporary adversarial majorities, it might occasionally be the case that
 no consensus-finalized beacon block within a period is signed by $2/3$ of the corresponding sync committee. 
